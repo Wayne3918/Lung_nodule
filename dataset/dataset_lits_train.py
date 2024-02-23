@@ -9,7 +9,7 @@ import SimpleITK as sitk
 import torch
 from torch.utils.data import Dataset as dataset
 from .transforms import RandomCrop, RandomFlip_LR, RandomFlip_UD, Center_Crop, Compose, Resize
-
+import nibabel as nib
 class Train_Dataset(dataset):
     def __init__(self, args):
 
@@ -19,29 +19,33 @@ class Train_Dataset(dataset):
 
         self.transforms = Compose([
                 RandomCrop(self.args.crop_size),
-                RandomFlip_LR(prob=0.5),
-                RandomFlip_UD(prob=0.5),
+                # RandomFlip_LR(prob=0.5),
+                # RandomFlip_UD(prob=0.5),
                 # RandomRotate()
             ])
 
     def __getitem__(self, index):
-
+        #print(self.filename_list[index][0])
         ct = sitk.ReadImage(self.filename_list[index][0], sitk.sitkInt16)
         seg = sitk.ReadImage(self.filename_list[index][1], sitk.sitkUInt8)
 
         ct_array = sitk.GetArrayFromImage(ct)
         seg_array = sitk.GetArrayFromImage(seg)
+        #print(ct_array.shape)
+        #ct_array = np.transpose(ct_array, (2, 0, 1))
+        #seg_array = np.transpose(seg_array, (2, 0, 1))
+        #print(ct_array.shape)
 
         ct_array = ct_array / self.args.norm_factor
         ct_array = ct_array.astype(np.float32)
-
         ct_array = torch.FloatTensor(ct_array).unsqueeze(0)
         seg_array = torch.FloatTensor(seg_array).unsqueeze(0)
-
         if self.transforms:
-            ct_array,seg_array = self.transforms(ct_array, seg_array)     
-
-        return ct_array, seg_array.squeeze(0)
+            ct_array_update,seg_array_update = self.transforms(ct_array, seg_array)     
+        #while torch.max(seg_array_update) != 1 and torch.max(seg_array_update) == 1:
+        #    ct_array_update,seg_array_update = self.transforms(ct_array, seg_array)  
+        #print(ct_array_update)   
+        return ct_array_update, seg_array_update.squeeze(0)
 
     def __len__(self):
         return len(self.filename_list)

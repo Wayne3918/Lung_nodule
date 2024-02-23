@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from glob import glob
 import math
 import SimpleITK as sitk
-
+import nibabel as nib
 class Img_DataSet(Dataset):
     def __init__(self, data_path, label_path, args):
         self.n_labels = args.n_labels
@@ -18,12 +18,13 @@ class Img_DataSet(Dataset):
         # 读取一个data文件并归一化 、resize
         self.ct = sitk.ReadImage(data_path,sitk.sitkInt16)
         self.data_np = sitk.GetArrayFromImage(self.ct)
+        #self.data_np = np.transpose(self.data_np, (2, 0, 1))
         self.ori_shape = self.data_np.shape
-        self.data_np = ndimage.zoom(self.data_np, (args.slice_down_scale, args.xy_down_scale, args.xy_down_scale), order=3) # 双三次重采样
-        self.data_np[self.data_np > args.upper] = args.upper
-        self.data_np[self.data_np < args.lower] = args.lower
-        self.data_np = self.data_np/args.norm_factor
-        self.resized_shape = self.data_np.shape
+        #self.data_np = ndimage.zoom(self.data_np, (args.slice_down_scale, args.xy_down_scale, args.xy_down_scale), order=3) # 双三次重采样
+        #self.data_np[self.data_np > args.upper] = args.upper
+        #self.data_np[self.data_np < args.lower] = args.lower
+        #self.data_np = self.data_np/args.norm_factor
+        #self.resized_shape = self.data_np.shape
         # 扩展一定数量的slices，以保证卷积下采样合理运算
         self.data_np = self.padding_img(self.data_np, self.cut_size,self.cut_stride)
         self.padding_shape = self.data_np.shape
@@ -33,6 +34,7 @@ class Img_DataSet(Dataset):
         # 读取一个label文件 shape:[s,h,w]
         self.seg = sitk.ReadImage(label_path,sitk.sitkInt8)
         self.label_np = sitk.GetArrayFromImage(self.seg)
+        #self.label_np = np.transpose(self.label_np, (2, 0, 1))
         if self.n_labels==2:
             self.label_np[self.label_np > 0] = 1
         self.label = torch.from_numpy(np.expand_dims(self.label_np,axis=0)).long()

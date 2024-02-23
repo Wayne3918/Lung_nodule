@@ -46,6 +46,7 @@ class LITS_preprocess:
         if classes==2:
             # 将金标准中肝脏和肝肿瘤的标签融合为一个
             seg_array[seg_array > 0] = 1
+
         # 将灰度值在阈值之外的截断掉
         ct_array[ct_array > self.upper] = self.upper
         ct_array[ct_array < self.lower] = self.lower
@@ -113,8 +114,8 @@ class LITS_preprocess:
         f.close()
 
 if __name__ == '__main__':
-    raw_dataset_path = '/ssd/lzq/dataset/LiTS/train'
-    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits'
+    raw_dataset_path = 'D:\\LIDC LDRI\\Training_Batch1\\train'
+    fixed_dataset_path = 'D:\\LIDC LDRI\\out_lits2_nodule'
 
     args = config.args 
     tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, args)

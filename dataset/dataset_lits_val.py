@@ -7,7 +7,7 @@ import SimpleITK as sitk
 import torch
 from torch.utils.data import Dataset as dataset
 from .transforms import Center_Crop, Compose
-
+import nibabel as nib
 
 class Val_Dataset(dataset):
     def __init__(self, args):
@@ -24,7 +24,8 @@ class Val_Dataset(dataset):
 
         ct_array = sitk.GetArrayFromImage(ct)
         seg_array = sitk.GetArrayFromImage(seg)
-
+        #ct_array = np.transpose(ct_array, (2, 0, 1))
+        #seg_array = np.transpose(seg_array, (2, 0, 1))
         ct_array = ct_array / self.args.norm_factor
         ct_array = ct_array.astype(np.float32)
 

@@ -18,12 +18,17 @@ class DiceLoss(nn.Module):
         smooth = 1
 
         dice = 0.
+        #print(pred.shape)
+        #print(target.shape)
         # dice系数的定义
         for i in range(pred.size(1)):
             dice += 2 * (pred[:,i] * target[:,i]).sum(dim=1).sum(dim=1).sum(dim=1) / (pred[:,i].pow(2).sum(dim=1).sum(dim=1).sum(dim=1) +
                                                 target[:,i].pow(2).sum(dim=1).sum(dim=1).sum(dim=1) + smooth)
+            #print(dice)
         # 返回的是dice距离
         dice = dice / pred.size(1)
+        #print('.....')
+        #print(dice)
         return torch.clamp((1 - dice).mean(), 0, 1)
 
 class ELDiceLoss(nn.Module):
