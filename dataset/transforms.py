@@ -144,7 +144,60 @@ class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, img, mask):
+    def __call__(self, img, bbox, malignancy):
         for t in self.transforms:
-            img, mask = t(img, mask)
-        return img, mask
+            img, bbox, malignancy = t(img, bbox, malignancy)
+        return img, bbox, malignancy
+    
+class Random_Crop_Z:
+    def __init__(self, crop_size = 48):
+        self.crop_size = crop_size
+ 
+    def __call__(self, image, bboxes, malignancy):
+        _, Z, X, Y = image.shape
+        
+        # 确保图像的深度大于目标深度
+        if self.crop_size > Z:
+            raise ValueError("target_depth is greater than the depth of the image.")
+        
+        # 初始化裁剪起始和结束位置
+        start_z = 0
+        end_z = self.crop_size
+        
+        # 确保至少有一个bbox完整包含在裁剪区域内
+        valid_crop = False
+        attempts = 0
+        while not valid_crop and attempts < 100:
+            # 随机选择裁剪的起始z坐标
+            start_z = np.random.randint(0, Z - self.crop_size + 1)
+            end_z = start_z + self.crop_size
+            
+            # 检查是否至少有一个bbox完整包含在裁剪区域内
+            for bbox in bboxes:
+                zmin, zmax, _, _, _, _ = bbox
+                if zmin >= start_z and zmax <= end_z:
+                    valid_crop = True
+                    break
+            
+            attempts += 1
+        
+        # 如果找不到有效的裁剪区域，可能需要调整策略
+        if not valid_crop:
+            raise RuntimeError("Unable to find a valid crop that includes a complete bbox.")
+        
+        # 裁剪图像
+        cropped_image = image[:, start_z:end_z, :, :]
+        
+        # 更新边界框和恶性程度标签
+        updated_bboxes = []
+        updated_malignancies = []
+        for i, bbox in enumerate(bboxes):
+            zmin, zmax, xmin, xmax, ymin, ymax = bbox
+            if zmin >= start_z and zmax <= end_z:
+                # 更新边界框的z坐标，并保留这个bbox及其恶性程度标签
+                new_zmin = zmin - start_z
+                new_zmax = zmax - start_z
+                updated_bboxes.append([new_zmin, new_zmax, xmin, xmax, ymin, ymax])
+                updated_malignancies.append(malignancy[i])
+        
+        return cropped_image, updated_bboxes, updated_malignancies

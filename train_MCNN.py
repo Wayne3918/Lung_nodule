@@ -7,7 +7,7 @@ import torch.optim as optim
 from tqdm import tqdm
 import config
 
-from models import UNet, ResUNet , KiUNet_min, SegNet
+from models import UNet, MCNNet, ResUNet , KiUNet_min, SegNet
 
 from utils import logger, weights_init, metrics, common, loss
 import os
@@ -49,13 +49,14 @@ def train(model, train_loader, optimizer, loss_func, n_labels, alpha):
         loss1 = loss_func(output[1], target)
         loss2 = loss_func(output[2], target)
         loss3 = loss_func(output[3], target)
+        loss4 = loss_func(output[4], target)
 
-        loss = loss3  +  alpha * (loss0 + loss1 + loss2)
+        loss = loss4  +  alpha * (loss0 + loss1 + loss2 + loss3)
         loss.backward()
         optimizer.step()
         
-        train_loss.update(loss3.item(),data.size(0))
-        train_dice.update(output[3], target)
+        train_loss.update(loss4.item(),data.size(0))
+        train_dice.update(output[4], target)
 
     val_log = OrderedDict({'Train_Loss': train_loss.avg, 'Train_dice_liver': train_dice.avg[1]})
     if n_labels==3: val_log.update({'Train_dice_tumor': train_dice.avg[2]})
@@ -71,14 +72,14 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=Val_Dataset(args),batch_size=1,num_workers=args.n_threads, shuffle=False)
 
     # model info
-    model = UNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+    model = MCNNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
 
     model.apply(weights_init.init_model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     common.print_network(model)
     model = torch.nn.DataParallel(model, device_ids=args.gpu_id)  # multi-GPU
  
-    loss = loss.BCEDiceLoss()
+    loss = loss.DiceLoss()
 
     log = logger.Train_Logger(save_path,"train_log")
 
